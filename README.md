@@ -27,7 +27,7 @@ The platform should make it easy to answer: **What changed? What did the robot p
 
 The platform must support **selecting different kinds of robots**, not just selecting a different visual model. A Roomba-like robot and a car must have appropriately different movement constraints, valid sensor sets, control capabilities, and mission feasibility.
 
-The user is selecting **one robot for an experiment**, not commanding a fleet of robots simultaneously. Multi-robot coordination is outside the MVP.
+The operator picks a **map** and a **team preset** and is matched against a randomly selected opponent preset; each robot runs its own autonomy stack, holds its own world model, and decides for itself. **The operator does not pilot any robot.** Several robots therefore run at once, in one world, in one match — and each one is still a genuinely modelled platform, not a token on a board. Nothing is coordinated through shared memory and nothing is resolved from simulator truth except by the referee.
 
 Robot choices influence the rest of the setup: environment compatibility, configuration-space constraints, control choices, available interventions, and the dashboard signals that matter. A configuration or failure mechanism may be available for one robot and invalid for another.
 
@@ -50,13 +50,19 @@ The MVP demonstrates a complete, real robotics workflow rather than a large coll
 | **Robot-specific configuration** | Only offer capabilities, parameters, and fault options that the selected robot and current simulation actually implement. |
 | **Operator dashboard** | Robot/world/mission setup; live simulation; mission controls; real subsystem state and telemetry; interference controls; event timeline. |
 | **Evidence** | A way to reproduce core scenarios and inspect their outcomes, including a baseline and a disrupted run. |
+| **Match** | Two teams of robots in one world, playing Capture the Flag under a **referee** that owns flag possession, zone capture, score, match clock and the terminal outcome. The referee is the only subsystem that resolves anything from simulator truth. |
+| **Per-robot world model** | Each robot holds its own beliefs — own pose estimate, enemy and teammate tracks with their age and their source. Two teammates must be able to disagree about the same enemy; a shared blackboard is a fake. |
+| **Modeled radio link** | Teammate-to-teammate messages delivered over a declared link with range, path loss, wall attenuation, packet loss, latency and jamming. Message **content** is drawn only from the sender's own knowledge, never from truth. |
+| **IFF perception** | A per-robot sensor that reports which other bodies are visible, within a stated field of view and range, with occlusion tested against the same geometry the robots navigate. Range and bearing in the sensor frame only; the robot converts to the map with its own estimate. |
 
-The first implementation can complete the full workflow with one robot before integrating the second, but **the MVP is not complete until both robot types actually navigate under their own constraints**.
+The first implementation can complete the full workflow with one robot before integrating the second, but **the MVP is not complete until both robot types actually navigate under their own constraints**. `ral_car` is **parked** out of the CTF match path — it stays buildable, tested and evidenced (`docs/car-closed-loop.md`, `docs/repeatability-baseline_car.md`, the `narrow_doorway_car` / `narrow_doorway_roomba` pair), and no ArduRover SITL process runs inside a match.
 
 ### Explicitly outside the MVP
 
 - Physical robot deployment and hardware-in-the-loop.
-- Simultaneous fleet control or multi-robot coordination.
+- Aerial or marine platforms.
+- Human-in-the-loop piloting: the operator configures and disturbs a match, and never drives a robot.
+- Networked play across hosts; a match runs in one simulator on one machine.
 - Arbitrary robot uploads or universal compatibility with every manufacturer.
 - General-purpose manipulation, object recognition, or autonomous exploration.
 - A custom physics engine, custom replacement for established robotics stacks, or a full-featured commercial ground-control station.
@@ -118,7 +124,8 @@ Use established robotics software and platform-appropriate protocols where they 
 ## Repository guidance
 
 - [`ENGINEERING.md`](ENGINEERING.md) — Non-negotiable realism, integration, observability, and validation standards.
-- [`DASHBOARD_UI_SPEC.md`](DASHBOARD_UI_SPEC.md) — Requirements and constraints for the operator dashboard (Phase 6): the data contract, provenance rules, panels, states and acceptance checks. The visual design is produced against it outside this repository.
+- [`ROADMAP.md`](ROADMAP.md) — the audit of the inherited repository and the phase plan P0–P9 that turns it into Capture the Flag. Every claim in it is labelled MEASURED, READ, UNVERIFIED or OPEN.
+- [`DASHBOARD_UI_SPEC.md`](DASHBOARD_UI_SPEC.md) — Requirements and constraints for the operator dashboard: the data contract, provenance rules, panels, states and acceptance checks. Its single-robot framing is superseded in part; see the status banner at the top of that file.
 - [`CLAUDE.md`](CLAUDE.md) — Working instructions for the coding agent; the agent must preserve this project's intent and the engineering standards.
 
 **Status:** Two robots are integrated and measured, each under its own autonomy
@@ -128,6 +135,16 @@ driven by ArduRover SITL over MAVLink/MAVROS and localized by the autopilot's
 own EKF3, with no Nav2 and no AMCL. Which stack a scenario brings up, which gz
 model it spawns, what its estimate IS and which faults are real for it all come
 from one file per platform, `ros2_ws/src/ral_bringup/config/robots/<robot>.yaml`.
+
+**`ral_car` is parked out of the CTF match path.** It stays buildable, tested
+and evidenced — `scripts/checks/car_nav_check.sh` returning 13/13 is what
+proves the park is intact, and every phase re-runs it — but no ArduRover SITL
+process runs inside a match, and the CTF work below is Roomba-only until a
+second match-capable platform exists.
+
+**The CTF conversion is staged as `ROADMAP.md` P0–P9.** Nothing in the match
+path — referee, radio, IFF perception, weapons, the decision model — exists
+until its phase lands with its own measured evidence document.
 
 Measured evidence, each file generated by the harness that produced it:
 

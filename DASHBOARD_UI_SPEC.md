@@ -1,5 +1,22 @@
 # Operator Dashboard — UI Specification (Phase 6)
 
+> **CTF status banner, added in `ROADMAP.md` P0 (2026-10-29).** This project is now a
+> Capture-the-Flag simulation (`README.md`, `ENGINEERING.md` §2). This document is 95 KB of
+> still-binding detail and is rewritten in P9, not now. Exactly two of its lines are **already
+> false** and are superseded by the phase plan:
+>
+> - *"Multi-robot / fleet views. One robot per experiment, always."* (§1.3, Forbidden in the UI) —
+>   **P1 makes several namespaced robots run in one match**, so a multi-robot view is required, not
+>   forbidden. What remains forbidden is a *fleet-command* view: the operator never pilots a robot.
+> - *"A20 | No comms-fault control, no fleet view, no confidence score, no success celebration"* —
+>   **P4 introduces a real communication fault boundary** (a modeled radio link with range, loss,
+>   latency, wall attenuation and jamming), so a comms-fault control becomes legitimate the moment
+>   it acts on that link. "No confidence score" and "no success celebration" are **unchanged and
+>   still binding**: a fabricated percentage remains forbidden by `ENGINEERING.md` §4.
+>
+> Everything else in this document still binds.
+
+
 **Status of this document.** Requirements and constraints for designing the Resilient Autonomy Lab
 operator dashboard. It is written to be used **outside this repository**, in an isolated design
 environment with no ROS, no Gazebo and no container: everything the design needs — topic names,

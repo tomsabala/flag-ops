@@ -32,6 +32,23 @@
 # doorway in ral_apartment.sdf is not an option: MVP acceptance scenario 4
 # (Roomba passes, car does not) depends on that geometry.
 
+# DELETED IN ROADMAP P0, with their reasons, because a node section removed
+# from a file copied in full from upstream is otherwise invisible:
+#
+#   * smoother_server (SimpleSmoother) - cosmetic path smoothing, one lifecycle
+#     component per robot. The default BT
+#     (navigate_to_pose_w_replanning_and_recovery.xml) never calls SmoothPath.
+#   * waypoint_follower (+ WaitAtWaypoint) - no consumer; a mission here issues
+#     one goal at a time.
+#   * the assisted_teleop behaviour and its two BT nodes - no teleop operator
+#     exists in a CTF match.
+#
+# Deleting the parameters alone changes nothing at runtime: upstream's
+# navigation_launch.py still loads smoother_server and waypoint_follower as
+# idle components on their defaults. ROADMAP P1 forks that launch file and
+# stops loading them, which is when the deletion removes real runtime surface
+# (two fewer lifecycle components per robot, eight at 2v2).
+
 amcl:
   ros__parameters:
     use_sim_time: True
@@ -112,7 +129,7 @@ bt_navigator:
       - nav2_follow_path_action_bt_node
       - nav2_spin_action_bt_node
       - nav2_wait_action_bt_node
-      - nav2_assisted_teleop_action_bt_node
+      # nav2_assisted_teleop_action_bt_node deleted in ROADMAP P0 with the behaviour.
       - nav2_back_up_action_bt_node
       - nav2_drive_on_heading_bt_node
       - nav2_clear_costmap_service_bt_node
@@ -150,7 +167,7 @@ bt_navigator:
       - nav2_wait_cancel_bt_node
       - nav2_spin_cancel_bt_node
       - nav2_back_up_cancel_bt_node
-      - nav2_assisted_teleop_cancel_bt_node
+      # nav2_assisted_teleop_cancel_bt_node deleted in ROADMAP P0 with the behaviour.
       - nav2_drive_on_heading_cancel_bt_node
       - nav2_is_battery_charging_condition_bt_node
 
@@ -379,22 +396,12 @@ planner_server:
       use_astar: false
       allow_unknown: true
 
-smoother_server:
-  ros__parameters:
-    use_sim_time: True
-    smoother_plugins: ["simple_smoother"]
-    simple_smoother:
-      plugin: "nav2_smoother::SimpleSmoother"
-      tolerance: 1.0e-10
-      max_its: 1000
-      do_refinement: True
-
 behavior_server:
   ros__parameters:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 10.0
-    behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
+    behavior_plugins: ["spin", "backup", "drive_on_heading", "wait"]
     spin:
       plugin: "nav2_behaviors/Spin"
     backup:
@@ -403,8 +410,9 @@ behavior_server:
       plugin: "nav2_behaviors/DriveOnHeading"
     wait:
       plugin: "nav2_behaviors/Wait"
-    assisted_teleop:
-      plugin: "nav2_behaviors/AssistedTeleop"
+    # ROADMAP P0 deleted the `assisted_teleop` behaviour and its two BT nodes:
+    # no teleop operator exists in a CTF match, and the default BT
+    # (navigate_to_pose_w_replanning_and_recovery.xml) never called it.
     global_frame: odom
     robot_base_frame: base_link
     transform_tolerance: 0.1
@@ -420,17 +428,6 @@ behavior_server:
 robot_state_publisher:
   ros__parameters:
     use_sim_time: True
-
-waypoint_follower:
-  ros__parameters:
-    use_sim_time: True
-    loop_rate: 20
-    stop_on_failure: false
-    waypoint_task_executor_plugin: "wait_at_waypoint"
-    wait_at_waypoint:
-      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
-      enabled: True
-      waypoint_pause_duration: 200
 
 velocity_smoother:
   ros__parameters:

@@ -59,12 +59,6 @@
   gz_type_name: "gz.msgs.IMU"
   direction: GZ_TO_ROS
 
-- ros_topic_name: "/joint_states"
-  gz_topic_name: "/world/ral_apartment/model/ral_car/joint_state"
-  ros_type_name: "sensor_msgs/msg/JointState"
-  gz_type_name: "gz.msgs.Model"
-  direction: GZ_TO_ROS
-
 # A contact sensor ignores its SDF <topic> and always publishes on this generated
 # path (verified). The world must load gz-sim-contact-system or this topic never
 # appears, and collision_count then has no source for this robot.

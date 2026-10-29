@@ -173,12 +173,17 @@ subsystem before anything is built on top of them.
 - **Constraints:** zero behaviour change. `baseline_roomba` must still produce
   metrics inside its recorded spread afterwards — it is the platform regression
   anchor for every later phase.
-- **Removes:** the IMU sensor and its bridge entry (MEASURED: no consumer),
-  `/joint_states` and the joint-state publisher plugin, `smoother_server`,
-  `waypoint_follower` + `WaitAtWaypoint`, the `AssistedTeleop` behaviour.
+- **Removes:** the Roomba's IMU sensor and its bridge entry (MEASURED: no
+  consumer), the `/joint_states` bridge entry on both robots, the joint-state
+  publisher plugin on the Roomba **only** (§6: keeping it on the car is a
+  MEASURED correction, not an oversight), `smoother_server`,
+  `waypoint_follower` + `WaitAtWaypoint`, the `AssistedTeleop` behaviour, and
+  five superseded scenarios.
 - **Enables:** everything. Nothing else may start while the documents say the
   opposite of the plan.
-- **Proof:** build green; `baseline_roomba` re-run and compared against
+- **Proof:** build green; `colcon test` green; `roomba_teleop_check` 8/8,
+  `roomba_nav_check` 12/12, `car_nav_check` 13/13 (the park intact), and
+  `baseline_roomba` re-run and compared against
   `docs/repeatability-baseline_roomba.md`.
 
 ### P1 — Multi-robot namespacing
@@ -361,7 +366,9 @@ No equivalent exists anywhere in the inherited repository:
 | Item | Evidence | Action |
 | --- | --- | --- |
 | IMU sensor, 100 Hz, bridged and recorded | MEASURED: no subscriber in `ros2_ws/src` | delete, P0 |
-| `/joint_states` + joint-state publisher plugin | feeds wheel TF only; nothing in CTF reads it | delete, P0 |
+| `/joint_states` bridge row, both robots | READ: no metric, no check and no node reads it; 29,170 of a baseline run's ~75,000 bag messages | delete, P0 — **done.** Costs the Roomba's two wheel frames and the car's six revolute frames, all unconsumed |
+| joint-state publisher **plugin**, `ral_roomba` | READ: `DiffDrive` keeps its own joint state; nothing read the components | delete, P0 — **done** |
+| joint-state publisher **plugin**, `ral_car` | **CORRECTED in P0: the original evidence line, "feeds wheel TF only; nothing in CTF reads it", is MEASURED-FALSE for this platform.** `ArduPilotPlugin.cc:1355-1380` reads `components::JointPosition` / `JointVelocity` for its force-mode controls and never creates them; this plugin is their only creator. MEASURED 2026-10-29 with it deleted: `car_nav_check` 7, 8 and 10 FAIL — no terminal condition in 180 s sim, 2.880 m from the goal, 88,228 contact reports against `wall_a_lower`, steering pinned near its 0.611 m geometric limit. With it: 13/13 | **keep**, `docs/inherited-surface.md` §2 |
 | `smoother_server` (`SimpleSmoother`) | cosmetic path smoothing, one lifecycle node per robot | delete, P0 |
 | `waypoint_follower` + `WaitAtWaypoint` | no consumer; the brain issues one goal at a time | delete, P0 |
 | `AssistedTeleop` behaviour | no teleop operator exists in CTF | delete, P0 |

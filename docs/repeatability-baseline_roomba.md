@@ -1,6 +1,6 @@
 # Repeatability — measured spread, not a determinism claim
 
-Measured 2026-10-25 13:41 UTC by
+Measured 2026-10-29 16:30 UTC by
 `scripts/checks/repeatability_check.sh`, which runs
 `scripts/run_scenario.sh baseline_roomba` 3 times in sequence
 and reads the resulting `metrics.json` files. Every duration is sim time off
@@ -10,12 +10,12 @@ and reads the resulting `metrics.json` files. Every duration is sim time off
 
 | Metric | run 1 | run 2 | run 3 |
 | --- | --- | --- | --- |
-| `mission_duration_s` | 38.058 | 37.480 | 37.738 |
-| `path_length_m` | 13.522 | 13.486 | 13.537 |
-| `goal_pose_error_m` | 0.019 | 0.047 | 0.031 |
-| `est_error_mean_m` | 0.062 | 0.069 | 0.079 |
-| `est_error_at_start_pose_m` | 0.078 | 0.074 | 0.077 |
-| `plan_publications` | 38 | 44 | 38 |
+| `mission_duration_s` | 37.950 | 37.384 | 37.644 |
+| `path_length_m` | 13.496 | 13.518 | 13.500 |
+| `goal_pose_error_m` | 0.033 | 0.012 | 0.034 |
+| `est_error_mean_m` | 0.067 | 0.067 | 0.068 |
+| `est_error_at_start_pose_m` | 0.081 | 0.079 | 0.074 |
+| `plan_publications` | 38 | 37 | 37 |
 | `recoveries` | 0 | 0 | 0 |
 | `collision_count` | 0 | 0 | 0 |
 | `mission_result` | `nav2:STATUS_SUCCEEDED` | `nav2:STATUS_SUCCEEDED` | `nav2:STATUS_SUCCEEDED` |
@@ -29,16 +29,16 @@ Why a value above is `null`:
 
 | Metric | min | max | max − min | max − min as % of mean |
 | --- | --- | --- | --- | --- |
-| `mission_duration_s` | 37.480 | 38.058 | 0.578 | 1.5% |
-| `path_length_m` | 13.486 | 13.537 | 0.051 | 0.4% |
+| `mission_duration_s` | 37.384 | 37.950 | 0.566 | 1.5% |
+| `path_length_m` | 13.496 | 13.518 | 0.022 | 0.2% |
 
 ## Run provenance
 
 | Run | Image | `git_sha` | dirty | `map_sha256` | `world_to_map` | RTF |
 | --- | --- | --- | --- | --- | --- | --- |
-| `baseline_roomba_20261025T133610Z` | `sha256:4eb135c402d493098` | `25c89d3fe455` | True | `47d1e2ad01a41a52` | x = 0.5, y = 0.5, yaw = 0.0 | 0.99999550002025, 0.99874358057563584, 1.0014480939438428 |
-| `baseline_roomba_20261025T133742Z` | `sha256:4eb135c402d493098` | `25c89d3fe455` | True | `47d1e2ad01a41a52` | x = 0.5, y = 0.5, yaw = 0.0 | 0.99968609856505053, 0.99933394392637309, 0.58036351649219009 |
-| `baseline_roomba_20261025T133934Z` | `sha256:4eb135c402d493098` | `25c89d3fe455` | True | `47d1e2ad01a41a52` | x = 0.5, y = 0.5, yaw = 0.0 | 0.99871714782362053, 0.9979273049875409, 1.0030190874532343 |
+| `baseline_roomba_20261029T162416Z` | `sha256:4eb135c402d493098` | `6da2b6943eec` | True | `47d1e2ad01a41a52` | x = 0.5, y = 0.5, yaw = 0.0 | 1.0057908407657086, 1.000324605334431, 1.0028792663737591 |
+| `baseline_roomba_20261029T162620Z` | `sha256:4eb135c402d493098` | `6da2b6943eec` | True | `47d1e2ad01a41a52` | x = 0.5, y = 0.5, yaw = 0.0 | 0.99862938117433819, 0.99918017266832559, 1.0019899520447608 |
+| `baseline_roomba_20261029T162817Z` | `sha256:4eb135c402d493098` | `6da2b6943eec` | True | `47d1e2ad01a41a52` | x = 0.5, y = 0.5, yaw = 0.0 | 0.99883286379865133, 0.999840525436193, 0.9978033359558931 |
 
 ## What this does and does not show
 

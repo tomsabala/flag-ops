@@ -1,6 +1,6 @@
 # Map, AMCL and Nav2 closed loop — measured proof
 
-Measured 2026-10-25 13:29 UTC by
+Measured 2026-10-29 16:12 UTC by
 `scripts/checks/roomba_nav_check.sh`, which launches
 `ral_bringup/roomba_nav.launch.py`, localizes the robot against the
 committed static map and sends one `NavigateToPose` goal in room 3 that
@@ -14,16 +14,16 @@ injected yet, and no dashboard exists; the scenario runner arrived in Phase 3.
 | --- | --- | --- | --- |
 | 1 | static map loaded and matched to its alignment | PASS | resolution 0.05000000074505806 m, 241 x 162 cells = 12.05 x 8.10 m (>= 12.00 x 8.00 required for the apartment), sha256(apartment.pgm) = 47d1e2ad01a41a52, alignment sealed to 47d1e2ad01a41a52 |
 | 2 | /scan has exactly one publisher: scan_fault_relay | PASS | /scan publishers = ['scan_fault_relay'], /scan_raw publishers = ['ros_gz_bridge']; a second publisher or a different node means lidar faults would not reach every consumer |
-| 3 | relay output equals relay input | PASS | at stamp 13.900000000: 360 ranges, frame_id 'rplidar_link' -> 'rplidar_link', element-for-element identical = True |
+| 3 | relay output equals relay input | PASS | at stamp 14.200000000: 360 ranges, frame_id 'rplidar_link' -> 'rplidar_link', element-for-element identical = True |
 | 4 | only the harness and the fault injector subscribe to truth | PASS | /ground_truth/odom subscribers = ['fault_manager', 'roomba_nav_check']; navigation offenders = []; not allowlisted = [] |
-| 5 | TF topology | PASS | frames = ['base_link', 'caster_front', 'caster_rear', 'left_wheel', 'map', 'odom', 'right_wheel', 'rplidar_link', 'world']; unexpected = [], missing = [], wrong parents (got, want) = none |
-| 6 | alignment residual | PASS | stationary \|AMCL - truth\| = 0.1407 m (limit 0.15), covariance trace 0.2268 after an in-place rotation at 0.6 rad/s. This is the floor below which estimate error cannot be interpreted: it is map error plus alignment error, not localization error |
-| 7 | mission succeeds | PASS | NavigateToPose result status = 4 (SUCCEEDED) after 37.5 s sim (limit 180) |
-| 8 | goal reached in ground truth | PASS | \|final truth - goal\| in map = 0.024 m (limit 0.25); truth world = (10.477, 6.493) |
-| 9 | threaded the 0.70 m doorway | PASS | 1 crossing(s) of x = 8.0 at y = [3.048]; inside the gap (\|y - 3.0\| <= 0.35): 1 |
+| 5 | TF topology | PASS | frames = ['base_link', 'caster_front', 'caster_rear', 'map', 'odom', 'rplidar_link', 'world']; unexpected = [], missing = [], wrong parents (got, want) = none |
+| 6 | alignment residual | PASS | stationary \|AMCL - truth\| = 0.1046 m (limit 0.15), covariance trace 0.2057 after an in-place rotation at 0.6 rad/s. This is the floor below which estimate error cannot be interpreted: it is map error plus alignment error, not localization error |
+| 7 | mission succeeds | PASS | NavigateToPose result status = 4 (SUCCEEDED) after 37.0 s sim (limit 180) |
+| 8 | goal reached in ground truth | PASS | \|final truth - goal\| in map = 0.038 m (limit 0.25); truth world = (10.463, 6.492) |
+| 9 | threaded the 0.70 m doorway | PASS | 1 crossing(s) of x = 8.0 at y = [3.043]; inside the gap (\|y - 3.0\| <= 0.35): 1 |
 | 10 | no collisions during the mission | PASS | 0 contact report(s) on /bumper. Contact path liveness: /bumper ROS publishers = ['ros_gz_bridge']; gz contact topic /world/ral_apartment/model/ral_roomba/link/base_link/sensor/bumper/contact is listed by `gz topic -l`. Both halves are required: a contact sensor is silent until something touches it, so a count of zero reports is only evidence when the path that would have carried them is shown to exist |
-| 11 | estimate is an estimate, not truth | PASS | mean \|AMCL - truth\| = 0.0731 m, max = 0.1223 m over 102 paired samples (required: > 0.005 so it is not truth, < 0.5 so it is localized) |
-| 12 | commands match the configured envelope | PASS | max \|cmd_vel.linear.x\| = 0.400 m/s (configured 0.4, required 0.380-0.4, plant 0.46), max \|cmd_vel.angular.z\| = 0.395 rad/s (plant 1.9); 39 /plan publication(s) |
+| 11 | estimate is an estimate, not truth | PASS | mean \|AMCL - truth\| = 0.0642 m, max = 0.1080 m over 103 paired samples (required: > 0.005 so it is not truth, < 0.5 so it is localized) |
+| 12 | commands match the configured envelope | PASS | max \|cmd_vel.linear.x\| = 0.400 m/s (configured 0.4, required 0.380-0.4, plant 0.46), max \|cmd_vel.angular.z\| = 0.520 rad/s (plant 1.9); 40 /plan publication(s) |
 
 ## Run
 
@@ -39,8 +39,8 @@ injected yet, and no dashboard exists; the scenario runner arrived in Phase 3.
 | `inflation_radius` in force | local_costmap 0.45 m, global_costmap 0.45 m |
 | Initial pose (world -> map) | (0.5, 0.5, 0.0) -> (0.000, 0.000, 0.000) |
 | Goal (world -> map) | (10.5, 6.5, 1.57) -> (10.000, 6.000, 1.570) |
-| Sim time elapsed | 47.56 s |
-| Real-time factor (`/world/ral_apartment/stats`) | 0.996345405054261, 0.994819972403694, 0.91771324214322747 |
+| Sim time elapsed | 47.08 s |
+| Real-time factor (`/world/ral_apartment/stats`) | 1.0002450600397097, 1.0006429130716485, 1.0004952451463474 |
 | Image | `sha256:4eb135c402d4930989bed15baf411ec98110d0e346f4ae9f7e7e3bb84b0a670e` |
 
 ## What these checks establish
@@ -127,5 +127,5 @@ injected yet, and no dashboard exists; the scenario runner arrived in Phase 3.
   check 3's byte-identical `/scan` holds only while degradation is off.
   The fault evidence lives in the Phase 4 scenario runs
   (`obstacle_roomba`, `scan_degraded_roomba`, `mobility_fault_roomba`,
-  `kidnap_roomba`, `blocked_goal_roomba`), each with its own
+  `narrow_doorway_roomba`), each with its own
   `metrics.json` and `plot.png` under `runs/`.

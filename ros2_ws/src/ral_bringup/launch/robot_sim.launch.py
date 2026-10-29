@@ -183,12 +183,20 @@ def _robot_actions(context, *args, **kwargs):
             output='screen',
         ),
 
-        # Publishes the fixed joints on /tf_static and the revolute ones on
-        # /tf from the bridged /joint_states - so a broken joint_state bridge
-        # row removes those frames while the static ones stay. The moving part
-        # of the chain is the robot's own estimate and comes from elsewhere:
-        # odom -> base_link over the bridge for a DiffDrive robot,
-        # ekf_local -> base_link from ral_eval's ekf_local_tf for the car.
+        # Publishes the fixed joints on /tf_static and nothing else. ROADMAP P0
+        # deleted the /joint_states bridge row for both robots, so this node
+        # receives no joint positions and the REVOLUTE joints - the Roomba's
+        # two wheels, the car's two steering knuckles and four wheels - no
+        # longer appear in any TF tree. Nothing consumed them: both costmaps
+        # use robot_radius, not a TF-derived footprint, and the car runs no
+        # costmap at all. See docs/inherited-surface.md.
+        #
+        # The gz JointStatePublisher PLUGIN is NOT the same thing: it was
+        # deleted from ral_roomba and KEPT on ral_car, where ArduPilotPlugin's
+        # force-mode controls read the joint components it creates.
+        # The moving part of the chain is the robot's own estimate and comes
+        # from elsewhere: odom -> base_link over the bridge for a DiffDrive
+        # robot, ekf_local -> base_link from ral_eval's ekf_local_tf for the car.
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',

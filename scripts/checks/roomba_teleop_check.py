@@ -3,7 +3,7 @@
 End-to-end proof of the Roomba platform and its teleop closed loop.
 
 Brings the whole stack up with `ros2 launch ral_bringup robot_sim.launch.py`,
-drives the robot from ROS, and asserts nine properties against the real
+drives the robot from ROS, and asserts eight properties against the real
 simulated subsystems. Writes docs/roomba-teleop-loop.md and exits non-zero if
 any check fails.
 
@@ -58,7 +58,7 @@ from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.time import Time as RclTime
 from ros_gz_interfaces.msg import Contacts
-from sensor_msgs.msg import Imu, JointState, LaserScan
+from sensor_msgs.msg import LaserScan
 import tf2_ros
 
 WORLD = 'ral_apartment'
@@ -80,12 +80,14 @@ EXPECTED_COLLISION = f'{MODEL}::base_link::base_collision'
 # output frames (`world`, `base_link_truth`) would not see it. Measured: with
 # /model/ral_roomba/pose bridged to /tf the tree gains ral_apartment ->
 # ral_roomba and an absence test still passes.
+# `left_wheel` and `right_wheel` were in this set until ROADMAP P0 deleted the
+# JointStatePublisher plugin and the /joint_states bridge row. Those joints are
+# REVOLUTE, so robot_state_publisher has nothing to compute their transforms
+# from; the fixed joints below are published on /tf_static as before.
 EXPECTED_TF_FRAMES = {
     'odom',
     'base_link',
     'rplidar_link',
-    'left_wheel',
-    'right_wheel',
     'caster_front',
     'caster_rear',
 }
@@ -142,22 +144,14 @@ class Phase1Check(Node):
         self.odom = None
         self.truth = None
         self.scan = None
-        self.imu = None
-        self.joints = None
         self.contact_names = []      # collision names from the last non-empty /bumper
         self.bumper_seen = False
-        # Peak |angular velocity z| the IMU reported while `record_imu` was set,
-        # i.e. during the commanded in-place rotation only.
-        self.record_imu = False
-        self.imu_wz_peak = 0.0
 
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
         self.create_subscription(Odometry, '/odom', self._on_odom, 10)
         self.create_subscription(Odometry, '/ground_truth/odom', self._on_truth, 10)
         self.create_subscription(LaserScan, '/scan_raw', self._on_scan, 10)
         self.create_subscription(Contacts, '/bumper', self._on_bumper, 10)
-        self.create_subscription(Imu, '/imu', self._on_imu, 10)
-        self.create_subscription(JointState, '/joint_states', self._on_joints, 10)
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self, spin_thread=False)
@@ -171,14 +165,6 @@ class Phase1Check(Node):
 
     def _on_scan(self, msg):
         self.scan = msg
-
-    def _on_imu(self, msg):
-        self.imu = msg
-        if self.record_imu:
-            self.imu_wz_peak = max(self.imu_wz_peak, abs(msg.angular_velocity.z))
-
-    def _on_joints(self, msg):
-        self.joints = msg
 
     def _on_bumper(self, msg):
         self.bumper_seen = True
@@ -267,8 +253,8 @@ def main() -> int:
                 '/odom': lambda: node.odom is not None,
                 '/ground_truth/odom': lambda: node.truth is not None,
                 '/scan_raw': lambda: node.scan is not None,
-                '/imu': lambda: node.imu is not None,
-                '/joint_states': lambda: node.joints is not None,
+                # /imu and /joint_states were gated here until ROADMAP P0
+                # deleted both streams at the model; see the note at check 8.
             }
             deadline = time.monotonic() + 60.0
             # The full gated list, NOT None: a zero-iteration loop would
@@ -285,7 +271,6 @@ def main() -> int:
                        f'no messages on {", ".join(missing)} within 60 s wall')
                 raise SystemExit(1)
             sim_start = node.sim_now()
-            wheels_at_start = dict(zip(node.joints.name, node.joints.position))
             print(f'--- stack up at sim t={sim_start:.2f} s', flush=True)
 
             # -- 1. TF chain ---------------------------------------------------
@@ -427,10 +412,8 @@ def main() -> int:
                 yaw_total += wrap_to_pi(yaw_now - yaw_prev)
                 yaw_prev = yaw_now
 
-            node.record_imu = True   # IMU evidence for check 9 comes from here
             node.spin_sim(ROTATE_SIM, cmd=twist(angular_z=ROTATE_RATE),
                           on_tick=accumulate_yaw)
-            node.record_imu = False
             node.stop()
 
             drift = math.hypot(node.truth.pose.pose.position.x - x0,
@@ -439,28 +422,12 @@ def main() -> int:
                    f'truth translation {drift:.4f} m (< 0.02) while accumulating '
                    f'{yaw_total:.3f} rad of yaw (> 3.0) over {ROTATE_SIM} s sim')
 
-            # -- 9. IMU and joint states reach ROS with real content -----------
-            # Presence alone proves nothing: the IMU must have measured the
-            # rotation the robot actually performed, and the wheel joints must
-            # have turned by the amount the drive required.
-            imu_frame = node.imu.header.frame_id
-            wheels_now = dict(zip(node.joints.name, node.joints.position))
-            wheel_names = ['left_wheel_joint', 'right_wheel_joint']
-            have_wheels = all(name in wheels_now and name in wheels_at_start
-                              for name in wheel_names)
-            turned = ({name: wheels_now[name] - wheels_at_start[name] for name in wheel_names}
-                      if have_wheels else {})
-            # 3.28 m of approach at wheel radius 0.036 m is ~91 rad of rotation;
-            # require at least 10 rad so a stuck or synthetic stream fails.
-            wheels_turned = have_wheels and all(abs(delta) > 10.0 for delta in turned.values())
-            imu_ok = (imu_frame == 'base_link'
-                      and abs(node.imu_wz_peak - ROTATE_RATE) < 0.15)
-            record(9, 'IMU and joint states carry real content', imu_ok and wheels_turned,
-                   f"imu frame_id='{imu_frame}', peak angular rate about z during "
-                   f'the commanded '
-                   f'{ROTATE_RATE} rad/s rotation = {node.imu_wz_peak:.3f} rad/s; wheel joint '
-                   + ', '.join(f'{name} turned {turned.get(name, float("nan")):.1f} rad'
-                               for name in wheel_names))
+            # Check 9 lived here until ROADMAP P0: "IMU and joint states carry
+            # real content". Both of its subjects are gone - the IMU sensor and
+            # the JointStatePublisher plugin were deleted from the model after
+            # MEASURED evidence that nothing in ros2_ws/src subscribed to
+            # either stream. A check with no subject is decoration, so it was
+            # deleted rather than weakened. See docs/inherited-surface.md.
 
             rtf = measure_rtf(WORLD)
 
@@ -476,10 +443,17 @@ def main() -> int:
 
     sim_duration = (sim_end - sim_start) if sim_start is not None else 0.0
     # The count matters as much as the verdicts: a run that recorded only
-    # three checks and passed all three is not a pass. 10 is the number of
-    # distinct check numbers this file records (0 through 9), the same guard
-    # both nav harnesses carry.
-    passed = all(result[2] for result in results) and len(results) == 10
+    # three checks and passed all three is not a pass. Check 0 (`bring-up`) is
+    # recorded ONLY when it fails, so a successful run records checks 1..8 and
+    # the count is 8.
+    #
+    # This constant was 10 on a file that could only ever record 9 results, so
+    # the harness exited 1 on a fully green run and the committed
+    # docs/roomba-teleop-loop.md ("all checks passed", 9 rows) was produced by
+    # an earlier revision. MEASURED 2026-10-29: a green run under the inherited
+    # code returned exit 1. ROADMAP P0 deleted check 9 and corrected the
+    # constant to the number the file can actually record.
+    passed = all(result[2] for result in results) and len(results) == 8
 
     doc = [
         '# Roomba platform and teleop closed loop — measured proof',
@@ -525,9 +499,6 @@ def main() -> int:
         '  names - shows up as an unexpected frame and fails the check.',
         '- The bumper is a real contact sensor on `base_collision` (check 4), and',
         '  the wall stops the robot through physics, not a script (checks 5, 6).',
-        '- The IMU measured the rotation the robot actually performed and the',
-        '  wheel joints turned by the amount the drive required (check 9), so',
-        '  those streams carry sensor content, not just a live topic name.',
         '- The checks themselves have been exercised against deliberately',
         '  broken stacks; the mutations, the dates and the checks that went red',
         '  are recorded in the "Negative controls" section of',
@@ -548,8 +519,8 @@ def main() -> int:
         '  resolved on the previous heading, and a sample with no valid',
         '  difference is marked `twist.covariance[0] = -1`, never published as a',
         '  zero velocity.',
-        '- The IMU is modelled without noise or bias, so its stream is cleaner',
-        '  than real hardware. The lidar carries sigma = 0.015 m.',
+        '- The lidar carries sigma = 0.015 m; it is the only noise modelled on',
+        '  this platform.',
         '',
         '## Not covered here',
         '',
@@ -558,9 +529,7 @@ def main() -> int:
         'now and are exercised elsewhere - the navigation stack by',
         '`scripts/checks/roomba_nav_check.py`, the five faults this platform',
         'supports by the',
-        '`ral_eval` scenario runs under `runs/`. Nothing in this stack consumes',
-        '`/imu` or `/joint_states`: check 9 reads them directly, and no state',
-        'estimator fuses them.',
+        '`ral_eval` scenario runs under `runs/`.',
         '',
     ]
     doc_path = os.path.join(args.repo_root, 'docs', 'roomba-teleop-loop.md')

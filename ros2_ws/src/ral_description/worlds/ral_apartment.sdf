@@ -40,12 +40,16 @@
          reasons that are invisible until a sensor stream is missing:
            Contact - without it the bumper contact sensor publishes nothing.
            Imu     - without it the IMU sensor publishes nothing, not even an
-                     empty topic (verified; there is no /imu at all).
-         UserCommands and ApplyLinkWrench are unused in Phase 1 and present for
-         Phase 4's obstacle spawn/remove, kidnap and external-push faults.
-         UserCommands is what serves /world/ral_apartment/create, /remove and
-         /set_pose - the services config/bridge_roomba_ral_apartment.yaml says
-         Phase 4 will bridge - so removing it would make that contract false. -->
+                     empty topic (verified; there is no /imu at all). Since
+                     ROADMAP P0 deleted ral_roomba's IMU (MEASURED: no
+                     subscriber anywhere in ros2_ws/src), the PARKED ral_car is
+                     this plugin's only consumer - ArduPilotPlugin reads the
+                     scoped sensor topic and EKF3 will not initialise without
+                     it. Deleting the plugin would silently un-park the car.
+         UserCommands and ApplyLinkWrench serve the fault manager's obstacle
+         spawn/remove, kidnap and external-push faults, and from ROADMAP P3 the
+         referee's flag remove/create. UserCommands is what serves
+         /world/ral_apartment/create, /remove and /set_pose. -->
     <plugin filename="gz-sim-physics-system"
             name="gz::sim::systems::Physics"/>
     <plugin filename="gz-sim-sensors-system"

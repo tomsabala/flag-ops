@@ -11,11 +11,15 @@ If an implementation shortcut conflicts with `ENGINEERING.md`, **preserve the pr
 
 ## Project mission
 
-Build a platform where a user selects a **realistically modeled robot type** (initially a Roomba-style differential-drive robot or a car-like steering robot), configures a compatible environment and capabilities, gives it a destination, watches it navigate, and injects environmental, sensor, capability, or communication disturbances while it is operating.
+Build a platform where two teams of **realistically modeled robots** play Capture the Flag in a simulated world, and an operator injects environmental, sensor, capability, or communication disturbances while the match is running.
+
+The operator picks a **map** and a **team preset** and is matched against a randomly selected opponent preset; each robot runs its own autonomy stack, holds its own world model, and decides for itself. **The operator does not pilot any robot.** Several robots run at once, in one world, in one match — and each one is still a genuinely modelled platform, not a token on a board. Nothing is coordinated through shared memory and nothing is resolved from simulator truth except by the referee.
 
 The project's value lies in **robot integration, navigation, localization, sensing, control, communication, fault handling, and inspectable behavior**. The dashboard enables those workflows; it is not the engineering centerpiece.
 
-The user selects **one robot per experiment**. “Multiple robots” means support for multiple selectable types, not simultaneous fleet coordination.
+“Multiple robots” now means both things: multiple selectable platform types, **and** several instances running simultaneously under their own independent stacks. `ral_car` is parked out of the match path — buildable, tested and evidenced, but not a CTF platform.
+
+The conversion is staged as `ROADMAP.md` P0–P9. Read it before proposing match-path work.
 
 ## Non-negotiable implementation behavior
 

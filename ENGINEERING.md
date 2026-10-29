@@ -23,7 +23,7 @@ Robot selection changes more than appearance.
 - Reject incompatible configurations explicitly; do not silently invent missing capabilities.
 - Reuse concepts between robots where appropriate, but preserve genuine differences in planning, localization, and control.
 
-**Selecting one platform for a run is required; commanding multiple robots simultaneously is not.**
+**Each robot instance runs its own stack, holds its own estimate and its own world model; a match runs several at once. Nothing is coordinated through shared memory and nothing is resolved from simulator truth except by the referee.**
 
 ## 3. Navigation must be an actual closed loop
 

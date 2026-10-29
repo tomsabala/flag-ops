@@ -141,10 +141,25 @@ LAUNCH_FILE = 'car_nav.launch.py'
 # display-only static transform car_nav.launch.py publishes from the committed
 # alignment, and neither carries a robot pose. `ekf_local` is the autopilot's
 # own frame, linked to `map` by ekf_local_tf's measurement. The remaining
-# frames are ral_car's links, published by robot_state_publisher from
-# /joint_states: one lidar, two steering knuckles and four wheels. This
-# platform has no wheel-odometry integrator of its own, so nothing it owns
-# publishes `odom`: its estimate chain is map -> ekf_local -> base_link.
+# frames are ral_car's links. This platform has no wheel-odometry integrator
+# of its own, so nothing it owns publishes `odom`: its estimate chain is
+# map -> ekf_local -> base_link.
+#
+# Only the FIXED joints are here. ROADMAP P0 deleted the /joint_states BRIDGE
+# row, so robot_state_publisher receives no joint positions and publishes
+# /tf_static for fixed joints only. The car's six revolute links -
+# `steer_left`, `steer_right`, `front_left_wheel`, `front_right_wheel`,
+# `rear_left_wheel`, `rear_right_wheel` - left the TF tree with it. Nothing
+# consumed them: this stack runs no costmap at all, and the steering evidence
+# this check scores comes from /mavros and from truth, never from a wheel
+# frame.
+#
+# The gz JointStatePublisher PLUGIN is a different thing and is still loaded on
+# this model, deliberately: ArduPilotPlugin's force-mode controls read the
+# components::JointPosition and components::JointVelocity that plugin creates,
+# and deleting it cost this harness checks 7, 8 and 10 (MEASURED 2026-10-29;
+# see the plugin's own comment in ral_car/model.sdf and
+# docs/inherited-surface.md).
 #
 # MAVROS adds four frames of its own, and they are listed because they are
 # MEASURED to be there, not because this project wants them: `map_ned`,
@@ -159,12 +174,6 @@ EXPECTED_TF_FRAMES = {
     'ekf_local',
     'base_link',
     'rplidar_link',
-    'steer_left',
-    'steer_right',
-    'front_left_wheel',
-    'front_right_wheel',
-    'rear_left_wheel',
-    'rear_right_wheel',
     'map_ned',
     'odom',
     'odom_ned',
@@ -1313,7 +1322,7 @@ def main() -> int:
         '- **One mission, no fault.** This harness runs a fault-free baseline on',
         '  purpose: it is the control the car\'s fault runs are read against.',
         '  The fault evidence is the scenario runs (`mobility_fault_car`,',
-        '  `kidnap_car`, `narrow_doorway_car`), each with its own `run.json`,',
+        '  `narrow_doorway_car`), each with its own `run.json`,',
         '  `metrics.json` and `plot.png` under `runs/`.',
         '',
     ]

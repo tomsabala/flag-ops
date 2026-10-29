@@ -84,8 +84,12 @@
            appears). <gz_frame_id> is likewise required - without it the
            messages are stamped `ral_car/base_link/imu_sensor` instead of
            `base_link`, which resolves in no TF tree.
-           On THIS platform the sensor is additionally load-bearing: it is the
-           sensor named by ArduPilotPlugin's <imuName> below. Without it the
+           ArduPilotPlugin below is now this sensor's ONLY consumer, and the
+           car is now the only consumer of the world's gz-sim-imu-system:
+           ral_roomba's IMU was deleted in ROADMAP P0 (MEASURED: nothing in
+           ros2_ws/src subscribed to /imu) and the world plugin is kept solely
+           for this vehicle. On THIS platform the sensor is load-bearing: it is
+           the sensor named by ArduPilotPlugin's <imuName> below. Without it the
            autopilot has no attitude source, EKF3 never initialises and the
            vehicle never arms.
 
@@ -441,7 +445,41 @@
       </axis>
     </joint>
 
-    <!-- Publishes on /world/<world>/model/ral_car/joint_state as gz.msgs.Model. -->
+    <!-- NOT a telemetry convenience: this plugin is LOAD-BEARING for the
+         autopilot's control loop, and ROADMAP P0 tried to delete it on the
+         strength of the audit line "feeds wheel TF only" before MEASURING
+         what happened.
+
+         ArduPilotPlugin's four <control> blocks below all set <useForce>1</useForce>.
+         In that branch the plugin READS the joint state and never creates it:
+         ArduPilotPlugin.cc:1355-1380 looks up components::JointVelocity for a
+         VELOCITY control and components::JointPosition for a POSITION one, and
+         when the component is absent it silently skips the PID update and
+         leaves JointForceCmd at its previous value. gz::sim::systems::Physics
+         only UPDATES those components; JointStatePublisher is what creates
+         them. So deleting this plugin removes the steering and throttle
+         FEEDBACK while leaving every command path intact.
+
+         MEASURED 2026-10-29, baseline_car through scripts/checks/car_nav_check.sh:
+           with the plugin    13/13, mission terminal at 7.0 s sim, final truth
+                              (6.233, 3.849) vs goal (6.500, 4.000), 0 contacts,
+                              min turning radius 54.8 m (never near full lock)
+           without the plugin checks 7, 8 and 10 FAIL: no terminal condition in
+                              180 s sim, final truth (3.700, 3.324) - 2.880 m
+                              from the goal - 88,228 raw contact reports against
+                              wall_a_lower, and a measured minimum turning
+                              radius of 0.525 m, i.e. the steering sat near its
+                              0.611 m geometric limit the whole run
+
+         ral_roomba's copy of this plugin WAS deleted in the same phase and is
+         not coming back: its DiffDrive plugin maintains its own joint state and
+         nothing read /joint_states on that platform. The /joint_states BRIDGE
+         row is deleted for both robots - that is a ROS-side topic, not the gz
+         component this plugin creates - so the car's six revolute links leave
+         the TF tree while its control loop keeps working. See
+         docs/inherited-surface.md.
+
+         Publishes on /world/<world>/model/ral_car/joint_state as gz.msgs.Model. -->
     <plugin filename="gz-sim-joint-state-publisher-system"
             name="gz::sim::systems::JointStatePublisher"/>
 

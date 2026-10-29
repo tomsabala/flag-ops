@@ -44,18 +44,6 @@
         <material><ambient>0.2 0.2 0.22 1</ambient><diffuse>0.25 0.25 0.28 1</diffuse></material>
       </visual>
 
-      <!-- gz-sim-imu-system must be loaded by the world or this sensor
-           publishes nothing at all (verified: no /imu topic appears).
-           <gz_frame_id> is likewise required - without it the messages are
-           stamped `ral_roomba/base_link/imu_sensor` instead of `base_link`,
-           which resolves in no TF tree. -->
-      <sensor name="imu_sensor" type="imu">
-        <topic>imu</topic>
-        <gz_frame_id>base_link</gz_frame_id>
-        <update_rate>100</update_rate>
-        <always_on>1</always_on>
-      </sensor>
-
       <!-- Bumper. A contact sensor IGNORES its <topic>: gz always publishes on
            /world/<world>/model/<model>/link/<link>/sensor/<sensor>/contact
            (verified). The bridge config uses that generated name; the <topic>
@@ -300,10 +288,6 @@
       <max_linear_velocity>0.46</max_linear_velocity>
       <max_angular_velocity>1.9</max_angular_velocity>
     </plugin>
-
-    <!-- Publishes on /world/<world>/model/ral_roomba/joint_state as gz.msgs.Model. -->
-    <plugin filename="gz-sim-joint-state-publisher-system"
-            name="gz::sim::systems::JointStatePublisher"/>
 
     <!-- Simulator TRUTH. Bridged to /ground_truth/tf and consumed only by
          ral_eval's ground_truth_node for evaluation and display. It must never

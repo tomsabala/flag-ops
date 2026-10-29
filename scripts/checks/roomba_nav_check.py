@@ -151,13 +151,18 @@ PLANT_MAX_ANGULAR = 1.9
 # truth bridged onto /tf arrives under the gz PosePublisher's own names
 # (ral_apartment -> ral_roomba), which an absence test on `base_link_truth`
 # would not see (measured in Phase 1).
+#
+# `left_wheel` and `right_wheel` were in this set until ROADMAP P0 deleted the
+# JointStatePublisher plugin and the /joint_states bridge row. Those joints are
+# REVOLUTE, so robot_state_publisher has nothing to compute their transforms
+# from and the frames are gone; the fixed joints (rplidar, both casters) are
+# published on /tf_static as before. Nothing consumed the wheel frames - both
+# costmaps use robot_radius, not a TF-derived footprint.
 EXPECTED_TF_FRAMES = {
     'map',
     'odom',
     'base_link',
     'rplidar_link',
-    'left_wheel',
-    'right_wheel',
     'caster_front',
     'caster_rear',
     'world',
@@ -870,7 +875,7 @@ def main() -> int:
         '  check 3\'s byte-identical `/scan` holds only while degradation is off.',
         '  The fault evidence lives in the Phase 4 scenario runs',
         '  (`obstacle_roomba`, `scan_degraded_roomba`, `mobility_fault_roomba`,',
-        '  `kidnap_roomba`, `blocked_goal_roomba`), each with its own',
+        '  `narrow_doorway_roomba`), each with its own',
         '  `metrics.json` and `plot.png` under `runs/`.',
         '',
     ]

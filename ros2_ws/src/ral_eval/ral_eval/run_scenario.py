@@ -58,11 +58,12 @@ Exit codes
 Bag size
 --------
 RECORD_TOPICS_COMMON plus the profile's `record_topics` is deliberately wide:
-a baseline Roomba run writes ~21 MB over ~75,000 messages, of which
-/joint_states contributes 29,170 and /scan plus /scan_raw most of the
-remainder. rosbag2's Humble CLI has no per-topic throttle, so each topic is
-all-or-nothing; /joint_states stays because wheel motion against truth motion
-is how slip is observed, and that is what the mobility fault is read from.
+a baseline Roomba run writes ~21 MB over ~75,000 messages, of which /scan plus
+/scan_raw are most of the remainder. rosbag2's Humble CLI has no per-topic
+throttle, so each topic is all-or-nothing. ROADMAP P0 removed /joint_states
+(29,170 messages of the ~75,000) by deleting its bridge row: no metric and no
+check read it, and slip is observed from the commanded /cmd_vel against truth
+motion instead.
 
 Concurrency
 -----------
@@ -236,9 +237,9 @@ RECORD_TOPICS_COMMON = (
     '/scan',                                # the stream the relay publishes
     '/scan_raw',                            # Phase 4.2 proves degradation between the two
     '/bumper',                              # collision_count
-    '/joint_states',                        # wheel motion; truth-vs-wheel divergence is
-                                            # how slip is observed (Phase 4.3's mobility
-                                            # fault, roomba_teleop_check 7)
+    # /joint_states was recorded here until ROADMAP P0 deleted its bridge row.
+    # No metric and no check ever read the topic. See
+    # docs/inherited-surface.md.
     '/mission_state',                       # the mission window itself
     '/fault_events',                        # fault_to_response_s anchors
     '/faults/active',                       # the manager's authoritative snapshot of
